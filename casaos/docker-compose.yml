@@ -1,0 +1,57 @@
+# CasaOS / ZimaOS app manifest for Streamarr
+name: streamarr
+services:
+  streamarr:
+    image: ghcr.io/guimartins/streamarr:latest
+    container_name: streamarr
+    restart: unless-stopped
+    environment:
+      TZ: America/Sao_Paulo
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - target: 8080
+        published: "8993"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /DATA/AppData/streamarr/data
+        target: /appdata
+    x-casaos:
+      volumes:
+        - container: /appdata
+          description:
+            en_us: Settings and cached streaming lookups
+      ports:
+        - container: "8080"
+          description:
+            en_us: Web UI port
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: streamarr
+  author: GuiMartins
+  category: Media
+  description:
+    en_us: >-
+      Reads the movies and series in your Radarr and Sonarr and shows on which
+      streaming services each one is available (Netflix, Prime Video, HBO Max,
+      Disney+…), using JustWatch data for your country. Filter by service, by
+      what you subscribe to, by downloaded or not, and find what is nowhere to
+      stream.
+  developer: GuiMartins
+  icon: https://raw.githubusercontent.com/GuiMartins/streamarr/main/icon.svg
+  screenshot_link: []
+  tagline:
+    en_us: Where to stream everything in your *arr library
+  thumbnail: ""
+  title:
+    en_us: Streamarr
+  tips:
+    before_install:
+      en_us: >-
+        After install, open the web UI and enter your Radarr and Sonarr URLs
+        (e.g. http://host.docker.internal:7878) and API keys.
+  index: /
+  port_map: "8993"

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Streamarr</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e5484d'/%3E%3Cpath d='M24 18l24 14-24 14z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f6f5f2; --surface: #ffffff; --surface2: #efeee9; --ink: #121212; --ink2: #4b4a46; --muted: #8a8882;
+  --line: #e2e0d9; --ring: rgba(0,0,0,.08); --accent: #e5484d; --accent-ink: #fff; --good: #1a9a63; --warn: #c27c00;
+  --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0c0c0d; --surface: #17171a; --surface2: #222226; --ink: #f4f4f5; --ink2: #c0bfc4; --muted: #84838a;
+    --line: #2a2a2f; --ring: rgba(255,255,255,.08); --accent: #ef5a5f; --good: #2fbf80; --warn: #e3a12f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0c0c0d; --surface: #17171a; --surface2: #222226; --ink: #f4f4f5; --ink2: #c0bfc4; --muted: #84838a;
+  --line: #2a2a2f; --ring: rgba(255,255,255,.08); --accent: #ef5a5f; --good: #2fbf80; --warn: #e3a12f;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+a { color: inherit; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 24px 20px 64px; }
+
+/* header */
+header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+.logo { width: 40px; height: 40px; border-radius: 11px; background: var(--accent); display: grid; place-items: center; flex: none; box-shadow: var(--shadow); }
+.logo svg { width: 18px; height: 18px; margin-left: 3px; }
+h1 { font-size: 22px; letter-spacing: -.02em; margin: 0; line-height: 1.1; }
+.sub { color: var(--muted); font-size: 13px; }
+.spacer { flex: 1; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background .15s, border-color .15s; white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.icon { padding: 8px 10px; }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn svg { width: 16px; height: 16px; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.progress { height: 3px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: -10px 0 18px; }
+.progress > div { height: 100%; background: var(--accent); transition: width .4s; }
+.alert { background: color-mix(in srgb, var(--warn) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; font-size: 14px; }
+
+/* stats */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; cursor: pointer; text-align: left; transition: border-color .15s, transform .15s; }
+.stat:hover { border-color: var(--muted); }
+.stat.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.stat .n { font-size: 28px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.stat .l { color: var(--ink2); font-size: 13px; }
+.stat .bar { height: 4px; border-radius: 4px; background: var(--surface2); margin-top: 10px; overflow: hidden; }
+.stat .bar > div { height: 100%; border-radius: 4px; }
+
+/* services strip */
+.services { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 10px; margin-bottom: 10px; scrollbar-width: thin; }
+.chip { flex: none; display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px 4px 4px; cursor: pointer; font-size: 13px; transition: border-color .15s; }
+.chip:hover { border-color: var(--muted); }
+.chip.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.chip img, .chip .ph { width: 26px; height: 26px; border-radius: 7px; display: block; }
+.chip .c { color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip .star { color: var(--warn); font-size: 12px; }
+.ph { background: var(--surface2); display: grid !important; place-items: center; font-weight: 700; font-size: 11px; color: var(--ink2); }
+
+/* toolbar */
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; position: sticky; top: 0; z-index: 5; background: var(--page); padding: 10px 0; }
+.search { flex: 1 1 240px; position: relative; }
+.search input { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 12px 8px 36px; outline: none; }
+.search input:focus { border-color: var(--accent); }
+.search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted); }
+.seg { display: inline-flex; background: var(--surface2); border-radius: 10px; padding: 3px; }
+.seg button { border: 0; background: transparent; padding: 5px 12px; border-radius: 8px; cursor: pointer; color: var(--ink2); }
+.seg button.on { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); font-weight: 600; }
+select { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 7px 10px; cursor: pointer; }
+.count { color: var(--muted); font-size: 13px; margin-left: auto; }
+
+/* grid */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 18px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; transition: transform .18s, box-shadow .18s; text-align: left; padding: 0; }
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.poster { aspect-ratio: 2/3; background: var(--surface2); position: relative; overflow: hidden; }
+.poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.poster .noimg { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; text-align: center; color: var(--muted); font-weight: 600; }
+.badge { position: absolute; top: 8px; left: 8px; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: rgba(0,0,0,.72); color: #fff; backdrop-filter: blur(4px); letter-spacing: .02em; }
+.badge.right { left: auto; right: 8px; }
+.badge.ok { background: color-mix(in srgb, var(--good) 88%, black); }
+.card .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.card .t { font-weight: 600; font-size: 14px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card .y { color: var(--muted); font-weight: 400; }
+.logos { display: flex; gap: 5px; flex-wrap: wrap; margin-top: auto; }
+.logos img, .logos .ph { width: 28px; height: 28px; border-radius: 7px; }
+.logos .more { font-size: 12px; color: var(--muted); align-self: center; }
+.mine { box-shadow: 0 0 0 2px var(--warn); }
+.nostream { font-size: 12px; color: var(--muted); margin-top: auto; }
+.empty { text-align: center; color: var(--muted); padding: 60px 20px; }
+
+/* modal */
+dialog { border: 0; padding: 0; border-radius: 18px; background: var(--surface); color: var(--ink); width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+dialog::backdrop { background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
+.m-head { display: flex; gap: 20px; padding: 22px; }
+.m-head img { width: 150px; border-radius: 12px; flex: none; align-self: flex-start; }
+.m-head h2 { margin: 0 0 4px; font-size: 22px; letter-spacing: -.02em; line-height: 1.2; }
+.meta { color: var(--ink2); font-size: 14px; display: flex; gap: 6px 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.close { position: absolute; top: 12px; right: 12px; }
+.sect { margin-top: 14px; }
+.sect h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+.offers { display: flex; flex-wrap: wrap; gap: 8px; }
+.offer { display: inline-flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 12px; padding: 5px 12px 5px 5px; text-decoration: none; font-size: 14px; transition: border-color .15s; }
+.offer:hover { border-color: var(--muted); }
+.offer img, .offer .ph { width: 32px; height: 32px; border-radius: 8px; }
+.offer small { color: var(--muted); display: block; font-size: 11px; line-height: 1.2; }
+.offer.mine { box-shadow: none; border-color: var(--warn); }
+.links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+
+/* settings */
+.s-body { padding: 22px; overflow: auto; }
+.s-body h2 { margin: 0 0 16px; font-size: 20px; }
+.field { display: grid; gap: 6px; margin-bottom: 14px; }
+.field label { font-size: 13px; color: var(--ink2); font-weight: 600; }
+.field input, .field select { border: 1px solid var(--line); background: var(--page); border-radius: 10px; padding: 8px 12px; width: 100%; outline: none; }
+.field input:focus { border-color: var(--accent); }
+.row { display: flex; gap: 10px; align-items: center; }
+.row > * { flex: 1; }
+.row > .btn { flex: none; }
+.hint { font-size: 12px; color: var(--muted); }
+.test { font-size: 13px; }
+.test.ok { color: var(--good); } .test.bad { color: var(--accent); }
+fieldset { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px 4px; margin: 0 0 16px; }
+legend { padding: 0 6px; font-weight: 700; }
+.svc-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.svc-pick label { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px 6px 6px; cursor: pointer; font-size: 13px; }
+.svc-pick label:has(input:checked) { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); }
+.svc-pick img, .svc-pick .ph { width: 24px; height: 24px; border-radius: 6px; }
+.svc-pick input { accent-color: var(--warn); margin: 0 0 0 auto; order: 3; }
+.s-foot { display: flex; gap: 10px; justify-content: flex-end; padding: 14px 22px; border-top: 1px solid var(--line); position: sticky; bottom: 0; background: var(--surface); }
+
+.setup { max-width: 520px; margin: 60px auto; text-align: center; }
+.setup h2 { font-size: 24px; margin: 18px 0 8px; }
+.setup p { color: var(--ink2); }
+
+@media (max-width: 600px) {
+  .wrap { padding: 16px 16px 48px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+  .m-head { flex-direction: column; padding: 18px; }
+  .m-head img { width: 120px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .stat .n { font-size: 22px; }
+  .count { width: 100%; margin: 0; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M5 3l15 9-15 9z" fill="#fff"/></svg></div>
+    <div>
+      <h1>Streamarr</h1>
+      <div class="sub" id="sub">carregando…</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="refreshBtn" title="Consultar tudo de novo no JustWatch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      <span>Atualizar</span>
+    </button>
+    <button class="btn icon" id="themeBtn" title="Tema claro/escuro">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+    <button class="btn icon" id="settingsBtn" title="Configurações">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <div class="progress" id="progress" hidden><div></div></div>
+  <div id="alert"></div>
+  <main id="main"></main>
+</div>
+
+<dialog id="detail"></dialog>
+<dialog id="settings"></dialog>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('oa.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('oa.' + k, JSON.stringify(v)); } catch {} },
+};
+
+const TYPE_LABEL = { sub: 'Assinatura', free: 'Grátis', rent: 'Aluguel', buy: 'Compra' };
+const COUNTRIES = { BR: 'Brasil', PT: 'Portugal', US: 'Estados Unidos', GB: 'Reino Unido', ES: 'Espanha', MX: 'México', AR: 'Argentina' };
+
+let data = null;        // { config, report }
+let services = [];      // [{ name, icon, count, mine }]
+const f = Object.assign({ q: '', kind: 'all', avail: 'all', dl: 'all', sort: 'title', svc: null }, store.get('filters', {}));
+f.q = '';
+
+// ---------- theme ----------
+const applyTheme = () => { const t = store.get('theme', null); if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; };
+applyTheme();
+$('#themeBtn').onclick = () => {
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  store.set('theme', dark ? 'light' : 'dark'); applyTheme();
+};
+
+// ---------- helpers ----------
+const ago = (ts) => {
+  if (!ts) return 'nunca';
+  const m = Math.round((Date.now() - ts) / 60000);
+  if (m < 1) return 'agora';
+  if (m < 60) return `há ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `há ${h} h`;
+  return `há ${Math.round(h / 24)} dia(s)`;
+};
+const gb = (b) => b >= 1e12 ? (b / 1e12).toFixed(1) + ' TB' : (b / 1e9).toFixed(1) + ' GB';
+const initials = (n) => n.replace(/[^A-Za-z0-9+ ]/g, '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+const logo = (o, extra = '') => o.icon
+  ? `<img src="${esc(o.icon)}" alt="${esc(o.service || o.name)}" title="${esc(o.service || o.name)}" loading="lazy" ${extra}>`
+  : `<span class="ph" title="${esc(o.service || o.name)}" ${extra}>${esc(initials(o.service || o.name))}</span>`;
+const mySet = () => new Set(data?.config?.myServices || []);
+const streamOffers = (it) => it.offers.filter((o) => o.type === 'sub' || o.type === 'free');
+const paidOffers = (it) => it.offers.filter((o) => o.type === 'rent' || o.type === 'buy');
+const onMine = (it) => { const m = mySet(); return streamOffers(it).some((o) => m.has(o.service)); };
+const availOf = (it) => streamOffers(it).length ? 'stream' : paidOffers(it).length ? 'paid' : 'none';
+const arrLink = (it) => {
+  const port = it.kind === 'movie' ? data.config.radarrPort : data.config.sonarrPort;
+  if (!port) return null;
+  return `${location.protocol}//${location.hostname}:${port}/${it.kind === 'movie' ? 'movie' : 'series'}/${encodeURIComponent(it.slug)}`;
+};
+
+// ---------- data ----------
+async function load() {
+  data = await (await fetch('api/data')).json();
+  buildServices();
+  render();
+}
+
+function buildServices() {
+  const map = new Map();
+  const mine = mySet();
+  for (const it of data.report?.items || []) {
+    for (const o of streamOffers(it)) {
+      let s = map.get(o.service);
+      if (!s) { s = { name: o.service, icon: o.icon, count: 0, mine: mine.has(o.service) }; map.set(o.service, s); }
+      if (!s.icon && o.icon) s.icon = o.icon;
+      s.count++;
+    }
+  }
+  services = [...map.values()].sort((a, b) => (b.mine - a.mine) || (b.count - a.count) || a.name.localeCompare(b.name));
+  if (f.svc && !map.has(f.svc)) f.svc = null;
+}
+
+// ---------- render ----------
+function render() {
+  const c = data.config, r = data.report;
+  $('#sub').textContent = r ? `${COUNTRIES[r.country] || r.country} · atualizado ${ago(r.generatedAt)}` : (c.configured ? 'primeira consulta em andamento…' : 'não configurado');
+  if (!c.configured) return renderSetup();
+  if (!r) { $('#main').innerHTML = `<div class="empty">Lendo o Radarr/Sonarr e consultando o JustWatch… isso leva um minutinho na primeira vez.</div>`; return; }
+
+  const items = r.items;
+  const n = {
+    all: items.length,
+    stream: items.filter((i) => availOf(i) === 'stream').length,
+    mine: items.filter(onMine).length,
+    paid: items.filter((i) => availOf(i) === 'paid').length,
+    none: items.filter((i) => availOf(i) === 'none').length,
+  };
+  const hasMine = mySet().size > 0;
+  const tile = (key, label, num, color) => `
+    <button class="stat ${f.avail === key ? 'on' : ''}" data-avail="${key}">
+      <div class="n">${num}</div><div class="l">${label}</div>
+      <div class="bar"><div style="width:${n.all ? (num / n.all * 100) : 0}%;background:${color}"></div></div>
+    </button>`;
+
+  $('#main').innerHTML = `
+    <div class="stats">
+      ${tile('all', 'Na biblioteca', n.all, 'var(--ink2)')}
+      ${tile('stream', 'Em algum streaming', n.stream, 'var(--good)')}
+      ${hasMine ? tile('mine', 'Nos meus serviços', n.mine, 'var(--warn)') : ''}
+      ${tile('paid', 'Só aluguel ou compra', n.paid, 'var(--muted)')}
+      ${tile('none', 'Em lugar nenhum', n.none, 'var(--accent)')}
+    </div>
+    <div class="services" id="services">
+      ${services.map((s) => `<button class="chip ${f.svc === s.name ? 'on' : ''}" data-svc="${esc(s.name)}">${logo(s)}<span>${esc(s.name)}</span>${s.mine ? '<span class="star">★</span>' : ''}<span class="c">${s.count}</span></button>`).join('')}
+    </div>
+    <div class="toolbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Buscar título…" value="${esc(f.q)}">
+      </div>
+      <div class="seg" id="kind">
+        <button data-kind="all" class="${f.kind === 'all' ? 'on' : ''}">Tudo</button>
+        <button data-kind="movie" class="${f.kind === 'movie' ? 'on' : ''}">Filmes</button>
+        <button data-kind="show" class="${f.kind === 'show' ? 'on' : ''}">Séries</button>
+      </div>
+      <select id="dl" aria-label="Download">
+        <option value="all">Baixados ou não</option>
+        <option value="yes">Só baixados</option>
+        <option value="no">Só não baixados</option>
+      </select>
+      <select id="sort" aria-label="Ordenar">
+        <option value="title">Título (A–Z)</option>
+        <option value="added">Adicionados recentemente</option>
+        <option value="year">Ano (mais novo)</option>
+        <option value="services">Mais serviços</option>
+        <option value="size">Tamanho em disco</option>
+      </select>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="grid" id="grid"></div>`;
+
+  $('#dl').value = f.dl; $('#sort').value = f.sort;
+  $('#main').querySelectorAll('[data-avail]').forEach((b) => b.onclick = () => { f.avail = f.avail === b.dataset.avail ? 'all' : b.dataset.avail; save(); render(); });
+  $('#services').querySelectorAll('[data-svc]').forEach((b) => b.onclick = () => { f.svc = f.svc === b.dataset.svc ? null : b.dataset.svc; save(); render(); });
+  $('#kind').querySelectorAll('button').forEach((b) => b.onclick = () => { f.kind = b.dataset.kind; save(); render(); });
+  $('#q').oninput = (e) => { f.q = e.target.value; renderGrid(); };
+  $('#dl').onchange = (e) => { f.dl = e.target.value; save(); renderGrid(); };
+  $('#sort').onchange = (e) => { f.sort = e.target.value; save(); renderGrid(); };
+  renderGrid();
+}
+
+function save() { const { q, ...rest } = f; store.set('filters', rest); }
+
+function filtered() {
+  const q = f.q.trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  let list = data.report.items.filter((it) => {
+    if (f.kind !== 'all' && it.kind !== f.kind) return false;
+    if (f.dl === 'yes' && !it.downloaded) return false;
+    if (f.dl === 'no' && it.downloaded) return false;
+    if (f.avail === 'mine' ? !onMine(it) : f.avail !== 'all' && availOf(it) !== f.avail) return false;
+    if (f.svc && !streamOffers(it).some((o) => o.service === f.svc)) return false;
+    if (q && !it.title.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').includes(q)) return false;
+    return true;
+  });
+  const by = {
+    title: (a, b) => a.title.localeCompare(b.title, 'pt-BR'),
+    added: (a, b) => (b.added || '').localeCompare(a.added || ''),
+    year: (a, b) => (b.year || 0) - (a.year || 0),
+    services: (a, b) => streamOffers(b).length - streamOffers(a).length || a.title.localeCompare(b.title, 'pt-BR'),
+    size: (a, b) => b.size - a.size,
+  };
+  return list.sort(by[f.sort] || by.title);
+}
+
+function renderGrid() {
+  const list = filtered();
+  const mine = mySet();
+  $('#count').textContent = `${list.length} ${list.length === 1 ? 'título' : 'títulos'}`;
+  if (!list.length) { $('#grid').innerHTML = `<div class="empty" style="grid-column:1/-1">Nada com esses filtros.</div>`; return; }
+  $('#grid').innerHTML = list.map((it, i) => {
+    const so = streamOffers(it).sort((a, b) => mine.has(b.service) - mine.has(a.service));
+    const shown = so.slice(0, 6);
+    const paid = paidOffers(it).length;
+    let foot;
+    if (so.length) foot = `<div class="logos">${shown.map((o) => logo(o, mine.has(o.service) ? 'class="mine"' : '')).join('')}${so.length > shown.length ? `<span class="more">+${so.length - shown.length}</span>` : ''}</div>`;
+    else if (!it.matched) foot = `<div class="nostream">Não encontrado no JustWatch</div>`;
+    else foot = `<div class="nostream">${paid ? 'Só aluguel ou compra' : 'Em nenhum streaming'}</div>`;
+    const dl = it.kind === 'show'
+      ? (it.episodes.have ? `<span class="badge ok right">${it.episodes.have}/${it.episodes.total} ep</span>` : '')
+      : (it.downloaded ? `<span class="badge ok right">Baixado</span>` : '');
+    return `<button class="card" data-i="${i}">
+      <div class="poster">
+        ${it.poster ? `<img src="${esc(it.poster)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+        <div class="noimg" ${it.poster ? 'style="z-index:-1"' : ''}>${esc(it.title)}</div>
+        <span class="badge">${it.kind === 'movie' ? 'Filme' : 'Série'}</span>${dl}
+      </div>
+      <div class="body"><div class="t">${esc(it.title)} <span class="y">${it.year || ''}</span></div>${foot}</div>
+    </button>`;
+  }).join('');
+  $('#grid').querySelectorAll('.card').forEach((el) => el.onclick = () => openDetail(list[+el.dataset.i]));
+}
+
+function openDetail(it) {
+  const mine = mySet();
+  const groups = ['sub', 'free', 'rent', 'buy'].map((t) => [t, it.offers.filter((o) => o.type === t).sort((a, b) => mine.has(b.service) - mine.has(a.service) || a.service.localeCompare(b.service))]).filter(([, l]) => l.length);
+  const offer = (o) => `<a class="offer ${mine.has(o.service) ? 'mine' : ''}" href="${esc(o.url || it.justwatch || '#')}" target="_blank" rel="noopener">
+      ${logo(o)}<span>${esc(o.service)}${mine.has(o.service) ? ' <span style="color:var(--warn)">★</span>' : ''}
+      <small>${[o.uhd ? '4K' : '', o.via.length ? (o.direct ? 'também via ' : 'via ') + o.via.join(', ') : ''].filter(Boolean).join(' · ') || TYPE_LABEL[o.type]}</small></span></a>`;
+  const dl = it.kind === 'show'
+    ? `${it.episodes.have}/${it.episodes.total} episódios baixados`
+    : (it.downloaded ? 'Baixado' : (it.monitored ? 'Ainda não baixado' : 'Não monitorado'));
+  const al = arrLink(it);
+  $('#detail').innerHTML = `
+    <div style="position:relative;overflow:auto;max-height:calc(100vh - 48px)">
+      <button class="btn icon close" onclick="this.closest('dialog').close()" aria-label="Fechar">✕</button>
+      <div class="m-head">
+        ${it.poster ? `<img src="${esc(it.poster)}" alt="">` : ''}
+        <div style="flex:1;min-width:0">
+          <h2>${esc(it.title)}</h2>
+          <div class="meta"><span>${it.kind === 'movie' ? 'Filme' : 'Série'}</span><span>${it.year || ''}</span><span>${dl}</span>${it.size ? `<span>${gb(it.size)} em disco</span>` : ''}</div>
+          ${groups.length ? groups.map(([t, l]) => `<div class="sect"><h3>${TYPE_LABEL[t]}</h3><div class="offers">${l.map(offer).join('')}</div></div>`).join('')
+            : `<p style="color:var(--ink2)">${it.matched ? 'Não está disponível em nenhum serviço no momento.' : 'Não encontrei esse título no JustWatch.'}</p>`}
+          <div class="links">
+            ${it.justwatch ? `<a class="btn" href="${esc(it.justwatch)}" target="_blank" rel="noopener">Ver no JustWatch ↗</a>` : ''}
+            ${al ? `<a class="btn" href="${esc(al)}" target="_blank" rel="noopener">Abrir no ${it.kind === 'movie' ? 'Radarr' : 'Sonarr'} ↗</a>` : ''}
+          </div>
+          <p class="hint" style="margin-top:14px">Consultado ${ago(it.checkedAt)}.</p>
+        </div>
+      </div>
+    </div>`;
+  $('#detail').showModal();
+}
+
+function renderSetup() {
+  $('#main').innerHTML = `<div class="setup">
+    <div class="logo" style="margin:0 auto;width:64px;height:64px;border-radius:18px"><svg viewBox="0 0 24 24" style="width:28px;height:28px"><path d="M5 3l15 9-15 9z" fill="#fff"/></svg></div>
+    <h2>Conecte o Radarr e o Sonarr</h2>
+    <p>Informe o endereço e a API key de cada um (Settings → General). O app lê sua biblioteca e mostra em quais streamings cada título está.</p>
+    <button class="btn primary" onclick="openSettings()">Configurar</button>
+  </div>`;
+}
+
+// ---------- settings ----------
+function openSettings() {
+  const c = data.config;
+  const mine = mySet();
+  const env = new Set(c.fromEnv);
+  const arrBlock = (w, label, ph) => `
+    <fieldset>
+      <legend>${label}</legend>
+      <div class="field"><label>Endereço</label><input name="${w}Url" value="${esc(c[w + 'Url'])}" placeholder="${ph}" ${env.has(w + 'Url') ? 'disabled' : ''}></div>
+      <div class="field"><label>API key</label>
+        <div class="row"><input name="${w}Key" type="password" autocomplete="off" placeholder="${c['has' + label + 'Key'] ? '•••••••• (salva, deixe em branco para manter)' : 'cole a API key'}" ${env.has(w + 'Key') ? 'disabled' : ''}>
+        <button type="button" class="btn" data-test="${w}">Testar</button></div>
+        <span class="test" id="test-${w}"></span>
+      </div>
+    </fieldset>`;
+  $('#settings').innerHTML = `
+    <form method="dialog" id="sform" style="display:flex;flex-direction:column;max-height:calc(100vh - 48px)">
+      <div class="s-body">
+        <h2>Configurações</h2>
+        ${arrBlock('radarr', 'Radarr', 'http://host.docker.internal:7878')}
+        ${arrBlock('sonarr', 'Sonarr', 'http://host.docker.internal:8989')}
+        <div class="row">
+          <div class="field"><label>País do catálogo</label><select name="country">${Object.entries(COUNTRIES).map(([k, v]) => `<option value="${k}" ${k === c.country ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+          <div class="field"><label>Reconsultar cada título a cada</label><select name="refreshHours">${[6, 12, 24, 48, 168].map((h) => `<option value="${h}" ${h == c.refreshHours ? 'selected' : ''}>${h < 48 ? h + ' horas' : h / 24 + ' dias'}</option>`).join('')}</select></div>
+        </div>
+        <p class="hint" style="margin-top:-6px">Títulos novos nos *arr aparecem sozinhos em até 30 min.</p>
+        <fieldset>
+          <legend>Meus serviços</legend>
+          <p class="hint" style="margin-top:0">Marque o que você assina: eles ganham destaque ★ e um filtro próprio.</p>
+          <div class="svc-pick">${services.length ? [...services].sort((a, b) => a.name.localeCompare(b.name)).map((s) => `<label>${logo(s)}<span>${esc(s.name)}</span><input type="checkbox" name="svc" value="${esc(s.name)}" ${mine.has(s.name) ? 'checked' : ''}></label>`).join('') : '<span class="hint">Aparecem aqui depois da primeira consulta.</span>'}</div>
+        </fieldset>
+      </div>
+      <div class="s-foot">
+        <button type="button" class="btn" onclick="this.closest('dialog').close()">Cancelar</button>
+        <button type="submit" class="btn primary">Salvar</button>
+      </div>
+    </form>`;
+  const form = $('#sform');
+  form.querySelectorAll('[data-test]').forEach((b) => b.onclick = async () => {
+    const w = b.dataset.test, out = $('#test-' + w);
+    out.className = 'test'; out.textContent = 'testando…';
+    const r = await (await fetch('api/test', { method: 'POST', body: JSON.stringify({ which: w, url: form[w + 'Url'].value, key: form[w + 'Key'].value }) })).json();
+    out.className = 'test ' + (r.ok ? 'ok' : 'bad');
+    out.textContent = r.ok ? `✓ ${r.appName} ${r.version}` : `✗ ${r.error}`;
+  });
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const body = {
+      country: form.country.value, refreshHours: form.refreshHours.value,
+      myServices: [...form.querySelectorAll('input[name=svc]:checked')].map((i) => i.value),
+    };
+    for (const w of ['radarr', 'sonarr']) {
+      if (!form[w + 'Url'].disabled) body[w + 'Url'] = form[w + 'Url'].value;
+      if (form[w + 'Key'].value) body[w + 'Key'] = form[w + 'Key'].value;
+    }
+    await fetch('api/config', { method: 'POST', body: JSON.stringify(body) });
+    $('#settings').close();
+    await load();
+    poll();
+  };
+  $('#settings').showModal();
+}
+$('#settingsBtn').onclick = openSettings;
+
+// close dialogs by clicking the backdrop
+for (const d of document.querySelectorAll('dialog')) d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
+
+// ---------- refresh + status polling ----------
+let wasRunning = false;
+async function poll() {
+  const s = await (await fetch('api/status')).json();
+  const p = $('#progress'), btn = $('#refreshBtn');
+  btn.disabled = s.running || !s.config.configured;
+  btn.querySelector('svg').classList.toggle('spin', s.running);
+  btn.querySelector('span').textContent = s.running ? (s.total ? `${s.done}/${s.total}` : 'Lendo…') : 'Atualizar';
+  p.hidden = !s.running;
+  if (s.running) p.firstElementChild.style.width = s.total ? `${(s.done / s.total) * 100}%` : '8%';
+  $('#alert').innerHTML = s.lastError ? `<div class="alert">⚠️ ${esc(s.lastError)}</div>` : '';
+  if (wasRunning && !s.running) await load();
+  if (!wasRunning && !s.running && data?.report && s.generatedAt && s.generatedAt !== data.report.generatedAt) await load();
+  wasRunning = s.running;
+  clearTimeout(poll.t);
+  poll.t = setTimeout(poll, s.running ? 1500 : 30000);
+}
+$('#refreshBtn').onclick = async () => { await fetch('api/refresh?force=1', { method: 'POST' }); wasRunning = true; poll(); };
+
+load().then(poll);
+setInterval(() => data && data.report && ($('#sub').textContent = `${COUNTRIES[data.report.country] || data.report.country} · atualizado ${ago(data.report.generatedAt)}`), 60000);
+</script>
+</body>
+</html>
